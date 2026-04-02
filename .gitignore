@@ -15,6 +15,7 @@ output/
 screenshots/
 
 # ── CSV (contains story data — keep template, ignore data) ───────────────────────
+stories.csv
 # stories.csv      ← Uncomment this line if you don't want to commit your story data
 
 # ── Temp / Dev files ─────────────────────────────────────────────────────────────

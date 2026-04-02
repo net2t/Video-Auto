@@ -1,7 +1,7 @@
 """
 MagicLight Auto — Kids Story Video Generator
 =============================================
-Version : 1.0.0
+Version : 1.0.2
 Released: 2026-04-01
 Repo    : https://github.com/<your-username>/VideoAutomation
 
@@ -36,7 +36,7 @@ Rules for AI-assisted edits:
 ──────────────────────────────────────────────────────────────────────────────
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.2"
 
 import re
 import os
@@ -45,6 +45,7 @@ import time
 import signal
 import argparse
 import requests
+import subprocess
 from datetime import datetime
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
@@ -70,6 +71,9 @@ STEP1_WAIT     = int(os.getenv("STEP1_WAIT",            "60"))
 STEP2_WAIT     = int(os.getenv("STEP2_WAIT",            "30"))
 STEP3_WAIT     = int(os.getenv("STEP3_WAIT",           "180"))
 RENDER_TIMEOUT = int(os.getenv("STEP4_RENDER_TIMEOUT", "1200"))
+HEADLESS_ENV   = os.getenv("HEADLESS", "false").lower() == "true"
+GIT_PUSH_ENABLED = os.getenv("GIT_PUSH", "false").lower() == "true"
+GIT_COMMIT_MSG   = os.getenv("GIT_COMMIT_MSG", "[Auto] Code update")
 POLL_INTERVAL  = 10
 RELOAD_INTERVAL = 120
 
@@ -1169,6 +1173,29 @@ def _retry_from_user_center(page, project_url, safe_name):
     except Exception as e:
         print(f"  [retry] Download failed: {e}"); return None
 
+def _git_push():
+    if not GIT_PUSH_ENABLED: return
+    print(f"\n[Git] Syncing changes to GitHub...")
+    try:
+        subprocess.run(["git", "add", "."], check=True, capture_output=True)
+        # Check if there are changes to commit
+        status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+        if not status.stdout.strip():
+            print("  [Git] No changes to push."); return
+
+        msg = f"{GIT_COMMIT_MSG} — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        subprocess.run(["git", "commit", "-m", msg], check=True, capture_output=True)
+        
+        # Determine current branch
+        branch_res = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True)
+        branch = branch_res.stdout.strip() or "master"
+        
+        print(f"  [Git] Pushing to origin {branch}...")
+        subprocess.run(["git", "push", "origin", branch], check=True, capture_output=True)
+        print("  [Git] Push successful!")
+    except Exception as e:
+        print(f"  [Git] Error: {e}")
+
 # ── MAIN ───────────────────────────────────────────────────────────────────────
 def _make_safe(row_num, title):
     s = re.sub(r"[^\w\-]", "_", f"row{row_num}_{title[:40]}")
@@ -1177,7 +1204,7 @@ def _make_safe(row_num, title):
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--max",      type=int, default=0)
-    p.add_argument("--headless", action="store_true")
+    p.add_argument("--headless", action="store_true", default=HEADLESS_ENV)
     return p.parse_args()
 
 def _make_context(browser, account):
@@ -1321,6 +1348,8 @@ def main():
         try: browser.close()
         except: pass
         _browser = None
+
+        _git_push()
 
 
 if __name__ == "__main__":

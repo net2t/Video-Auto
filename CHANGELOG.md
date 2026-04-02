@@ -5,6 +5,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.2] — 2026-04-02
+
+### Added
+
+- **Automatic Git Sync**: The script now automatically pushes code changes to GitHub after each run (if `GIT_PUSH=true` in `.env`).
+- **Enhanced Privacy**: `stories.csv` is now explicitly ignored in `.gitignore` to prevent leaking story data.
+- **Auto-Commit Messages**: Custom commit messages can be configured via `GIT_COMMIT_MSG`.
+
+---
+
+## [1.0.1] — 2026-04-02
+
+### Added
+
+- **`HEADLESS`** environment variable support in `.env`.
+- `magiclight_auto.py` now respects the `HEADLESS` env var if the `--headless` flag is not provided.
+
+---
+
 ## [1.0.0] — 2026-04-01
 
 ### 🎉 First stable release — fully tested single & multi-story runs
