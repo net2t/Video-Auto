@@ -783,8 +783,7 @@ def step3(page):
 
     js_img = """\
 () => document.querySelectorAll(
-    '[class*="role-card"] img,[class*="scene"] img,' +
-    '[class*="storyboard"] img,[class*="story-board"] img'
+    '[class*="scene"] img,[class*="storyboard"] img,[class*="story-board"] img'
 ).length"""
 
     deadline = time.time() + STEP3_WAIT
@@ -1316,6 +1315,18 @@ def main():
 
         for csv_idx, row in pending:
             if _shutdown: break
+
+            while account and account.get("credits", 999) < 60:
+                print(f"[Main] Account {account.get('email')} has {account.get('credits')} credits. Switching...")
+                account = next_account()
+                if not account:
+                    print("[Main] All accounts exhausted.")
+                    break
+                context.close()
+                context = _make_context(browser, account)
+                page    = context.new_page()
+                login(page, account)
+            if not account: break
 
             story = row.get("Story", "").strip()
             if not story:
