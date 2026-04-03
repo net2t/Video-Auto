@@ -588,6 +588,35 @@ def login(page, account=None):
         page.context.storage_state(path=auth_file)
         print(f"[Login] Session saved -> {auth_file}")
     except: pass
+
+    # Fetch credits
+    try:
+        js = """() => {
+            let res = '';
+            document.querySelectorAll('div, span, p, a, button').forEach(el => {
+                let rect = el.getBoundingClientRect();
+                if (rect.width > 0 && rect.top < 150) { 
+                    let ownText = Array.from(el.childNodes)
+                        .filter(n => n.nodeType === 3)
+                        .map(n => n.textContent.trim())
+                        .join('');
+                    if (ownText && ownText.length > 0 && ownText.length < 20 && /[0-9]/.test(ownText)) {
+                        if (el.className && typeof el.className === 'string' && el.className.includes('integral-info-score')) {
+                            res = ownText;
+                        }
+                    }
+                }
+            });
+            return res;
+        }"""
+        creds = page.evaluate(js)
+        if creds:
+            print(f"[Login] Credits remaining: {creds}")
+            try:
+                account["credits"] = int(creds.replace(",", ""))
+            except: pass
+    except: pass
+
     return True
 
 
@@ -1039,6 +1068,14 @@ def _download(page, safe_name):
     thumb_dest = os.path.join(sdir, f"{safe_name}_thumb.jpg")
     thumb_url = page.evaluate("""\
 () => {
+    // 1. Check for video poster first (most reliable thumbnail)
+    const v = document.querySelector('video[poster]');
+    if (v && v.getAttribute('poster')) {
+        const poster = v.getAttribute('poster');
+        if (poster.startsWith('http')) return poster;
+    }
+
+    // 2. Check for explicit text labels
     const all = Array.from(document.querySelectorAll('div,span,section,h3,h4,p'));
     for (const el of all) {
         const t = (el.innerText || '').trim().toLowerCase();
@@ -1051,9 +1088,12 @@ def _download(page, safe_name):
             c = c.parentElement;
         }
     }
+
+    // 3. Fallback to images (excluding huge cover templates)
     const imgs = Array.from(document.querySelectorAll('img[src]'))
         .filter(i => i.src.startsWith('http') && !i.src.includes('logo') &&
-                     !i.src.includes('icon') && i.naturalWidth >= 200)
+                     !i.src.includes('icon') && i.naturalWidth >= 200 && 
+                     !i.src.includes('template'))
         .sort((a, b) => (b.naturalWidth*b.naturalHeight) - (a.naturalWidth*a.naturalHeight));
     return imgs.length ? imgs[0].src : null;
 }""")
@@ -1339,6 +1379,9 @@ def main():
 
             video_ok = bool(result and result.get("video") and os.path.exists(result["video"]))
             status   = "Done" if video_ok else "No_Video"
+            if video_ok and "credits" in account:
+                account["credits"] -= 60
+                print(f"  [Credits] Deducted 60. Remaining for {account['email']}: {account['credits']}")
             update_row(csv_idx,
                 Status         = status,
                 Gen_Title      = (result or {}).get("gen_title") or title,
