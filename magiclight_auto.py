@@ -182,7 +182,7 @@ _CLOSE_SELECTORS = [
 _POPUP_JS = """\
 () => {
     const BAD = ["Got it","Got It","Close","Done","OK","Later","No thanks",
-                 "Maybe later","Not now","Dismiss","Close samples","No","Cancel"];
+                 "Maybe later","Not now","Dismiss","Close samples","No","Cancel","I know","I Know"];
     let n = 0;
     document.querySelectorAll('button,span,div,a').forEach(el => {
         const t = (el.innerText || el.textContent || '').trim();
@@ -633,7 +633,7 @@ def _dismiss_post_login_popups(page):
         if (r.width > 0 && r.height > 0) { el.click(); n++; }
     });
     const texts = ["Skip","Got it","Got It","Close","Done","Later",
-                   "Not now","Maybe later","Close samples","No thanks","Dismiss"];
+                   "Not now","Maybe later","Close samples","No thanks","Dismiss","I know","I Know"];
     document.querySelectorAll('button,div[role="button"],a').forEach(el => {
         const t = (el.innerText || '').trim();
         if (texts.includes(t)) {
@@ -671,6 +671,8 @@ def _dismiss_post_login_popups(page):
 def step1(page, story_text):
     print("[Step 1] Story input...")
     page.goto("https://magiclight.ai/kids-story/", timeout=60000)
+    try: page.reload(timeout=60000)
+    except: pass
     wait_site_loaded(page, None, timeout=60)
     dismiss_popups(page, timeout=10)
 
@@ -944,10 +946,10 @@ def step4(page, safe_name):
         '[class*="progress"],[class*="Progress"],[class*="render-progress"],[class*="generating"]'
     )).filter(el => {
         const r = el.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && (el.innerText || '').match(/[0-9]+\s*%/);
+        return r.width > 0 && r.height > 0 && (el.innerText || '').match(/[0-9]+\\s*%/);
     });
     if (prog.length > 0) {
-        const m = (prog[0].innerText || '').match(/(\d+)\s*%/);
+        const m = (prog[0].innerText || '').match(/(\\d+)\\s*%/);
         return 'progress:' + (m ? m[1] : '?') + '%';
     }
     const body = (document.body && document.body.innerText) || '';
@@ -1378,7 +1380,7 @@ def main():
                     sleep_log(5); continue
 
             video_ok = bool(result and result.get("video") and os.path.exists(result["video"]))
-            status   = "Done" if video_ok else "No_Video"
+            status   = "Video Ready" if video_ok else "No_Video"
             if video_ok and "credits" in account:
                 account["credits"] -= 60
                 print(f"  [Credits] Deducted 60. Remaining for {account['email']}: {account['credits']}")
