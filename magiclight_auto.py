@@ -492,10 +492,19 @@ def login(page, account=None):
     auth_file = _auth_json_path(account)
 
     print(f"[Login] Account: {email}")
-    page.goto("https://magiclight.ai/login/?to=%252Fkids-story%252F", timeout=60000)
+    for _retry in range(3):
+        try:
+            page.goto("https://magiclight.ai/login/?to=%252Fkids-story%252F", timeout=60000)
+            break
+        except Exception as _e:
+            print(f"  [login] goto failed: {_e}. Retrying.")
+            time.sleep(3)
     try: page.wait_for_load_state("domcontentloaded", timeout=30000)
     except: pass
-    sleep_log(4, "page settle")
+    try:
+        page.wait_for_url(lambda u: "login" not in u.lower(), timeout=8000)
+    except: pass
+    sleep_log(2, "page settle")
 
     if "login" not in page.url.lower():
         print("[Login] Saved session valid")
@@ -592,22 +601,28 @@ def login(page, account=None):
     # Fetch credits
     try:
         js = """() => {
-            let res = '';
-            document.querySelectorAll('div, span, p, a, button').forEach(el => {
+            let maxCreds = -1;
+            let els = document.querySelectorAll('div, span, button, p');
+            for (let el of els) {
                 let rect = el.getBoundingClientRect();
-                if (rect.width > 0 && rect.top < 150) { 
+                if (rect.width > 0 && rect.top < 120 && rect.left > window.innerWidth / 2) {
+                    // Only direct distinct texts
                     let ownText = Array.from(el.childNodes)
                         .filter(n => n.nodeType === 3)
                         .map(n => n.textContent.trim())
                         .join('');
-                    if (ownText && ownText.length > 0 && ownText.length < 20 && /[0-9]/.test(ownText)) {
-                        if (el.className && typeof el.className === 'string' && el.className.includes('integral-info-score')) {
-                            res = ownText;
+                    if (!ownText) continue;
+                    let text = (el.innerText || el.textContent || '').trim();
+                    let digits = text.replace(/[^0-9]/g, '');
+                    if (digits.length > 0 && text.length < 20) {
+                        let val = parseInt(digits, 10);
+                        if (!isNaN(val) && val > maxCreds) {
+                            maxCreds = val;
                         }
                     }
                 }
-            });
-            return res;
+            }
+            return maxCreds >= 0 ? maxCreds.toString() : null;
         }"""
         creds = page.evaluate(js)
         if creds:
