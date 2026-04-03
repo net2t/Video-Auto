@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.3] — 2026-04-03
+
+### Fixed
+
+- Intercepted "Want to enhance your video?" dialog in step 4 to click 'Next' instead of 'X', ensuring progression to video generation.
+
+---
+
 ## [1.0.2] — 2026-04-02
 
 ### Added

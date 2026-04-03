@@ -1,8 +1,8 @@
 """
 MagicLight Auto — Kids Story Video Generator
 =============================================
-Version : 1.0.2
-Released: 2026-04-01
+Version : 1.0.3
+Released: 2026-04-03
 Repo    : https://github.com/<your-username>/VideoAutomation
 
 CSV: stories.csv  ->  output/row{N}_{title}/
@@ -36,7 +36,7 @@ Rules for AI-assisted edits:
 ──────────────────────────────────────────────────────────────────────────────
 """
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 import re
 import os
@@ -246,6 +246,16 @@ _REAL_DIALOG_JS = """\
         return txt.includes('remind') || txt.includes('again') || txt.includes('ask');
     });
     if (chk) { try { chk.click(); } catch(e) {} }
+
+    const mdNext = Array.from(document.querySelectorAll('button, div[class*="btn"]')).find(el => {
+        const t = (el.innerText || '').trim();
+        if (t === 'Next' || t === 'Continue' || t === 'Skip') {
+            const r = el.getBoundingClientRect();
+            if (r.width > 0) return !!el.closest('.arco-modal, .arco-modal-wrapper, [class*="modal"], [role="dialog"]');
+        }
+        return false;
+    });
+    if (mdNext) { mdNext.click(); return 'dialog: clicked ' + (mdNext.innerText || '').trim(); }
 
     const xBtn = document.querySelector(
         '.arco-modal-close-btn,[aria-label="Close"],[aria-label="close"],' +
